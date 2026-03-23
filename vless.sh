@@ -440,7 +440,6 @@ main_install() {
         show_progress $i 3 "重置防火墙规则"
         sleep 0.2
     done
-    ufw --force reset >/dev/null 2>&1
     complete_progress "防火墙规则重置完成"
     
     # 设置默认策略

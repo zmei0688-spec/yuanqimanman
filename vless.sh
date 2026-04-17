@@ -435,28 +435,33 @@ main_install() {
         complete_progress "UFW防火墙安装完成"
     fi
     
-    # 重置UFW规则
-    for i in {1..3}; do
-        show_progress $i 3 "重置防火墙规则"
-        sleep 0.2
-    done
-    complete_progress "防火墙规则重置完成"
-    
-    # 设置默认策略
+    # 不重置UFW，避免清掉已安装的HY2 UDP规则
+for i in {1..3}; do
+    show_progress $i 3 "检查并追加防火墙规则"
+    sleep 0.2
+done
+
+# 仅在UFW未启用时设置默认策略
+if ! ufw status | grep -q "Status: active"; then
     ufw default deny incoming >/dev/null 2>&1
     ufw default allow outgoing >/dev/null 2>&1
-    
-    # 开放端口
-    ufw allow 22/tcp >/dev/null 2>&1
-    ufw allow ${PORT}/tcp >/dev/null 2>&1
-    
-    # 启用防火墙
-    for i in {1..5}; do
-        show_progress $i 5 "启用UFW防火墙"
-        sleep 0.1
-    done
+fi
+
+# 追加放行规则，不清空原有规则
+ufw allow 22/tcp >/dev/null 2>&1
+ufw allow ${PORT}/tcp >/dev/null 2>&1
+
+# 仅在未启用时启用UFW
+for i in {1..5}; do
+    show_progress $i 5 "启用/刷新UFW防火墙"
+    sleep 0.1
+done
+
+if ! ufw status | grep -q "Status: active"; then
     ufw --force enable >/dev/null 2>&1
-    complete_progress "UFW防火墙配置完成"
+fi
+
+complete_progress "UFW防火墙配置完成"
     
     echo -e "${GREEN}${ICON_SUCCESS} 已开放端口：SSH(22), Xray(${PORT})${NC}\n"
     

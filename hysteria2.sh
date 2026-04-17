@@ -225,7 +225,7 @@ generate_shadowrocket_link() {
     local obfs_password="cry_me_a_r1ver"
     
     # 构建参数
-    local params="sni=${sni}&obfs=salamander&obfs-password=${obfs_password}&insecure=1&up=${up_speed}&down=${down_speed}"
+    local params="sni=${sni}&obfs=salamander&obfs-password=${obfs_password}&insecure=1&up=30&down=100"
     
     # 生成Hysteria2链接
     SHADOWROCKET_LINK="hysteria2://${auth}@${server}:${port}/?${params}#Hysteria2_Nvidia_$(date +%m%d)"
@@ -380,11 +380,17 @@ generate_v2rayn_config() {
         sleep 0.2
     done
     
-    SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || curl -s icanhazip.com 2>/dev/null)
-    
-    if [[ -z "$SERVER_IP" ]]; then
-        SERVER_IP=$(ip route get 8.8.8.8 | grep -oP 'src \K\S+')
-    fi
+    # 强制获取公网 IPv4
+SERVER_IP=$(curl -4 -s --max-time 8 ifconfig.me 2>/dev/null || \
+            curl -4 -s --max-time 8 ipinfo.io/ip 2>/dev/null || \
+            curl -4 -s --max-time 8 icanhazip.com 2>/dev/null)
+
+SERVER_IP=$(echo "$SERVER_IP" | tr -d '\r\n ')
+
+# 如果获取失败或不是 IPv4，则走本机路由回退
+if ! echo "$SERVER_IP" | grep -Eq '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
+    SERVER_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}' | head -n1)
+fi
     
     complete_progress "服务器IP地址获取完成"
     
